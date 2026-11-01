@@ -14,5 +14,8 @@ Identifies broken links within a website or HTML document, reporting on HTTP sta
 - `-o`: No description provided
 - `--ignore-ssl`: Ignore SSL certificate verification errors.
 
+## Notes
+If the target page itself cannot be fetched, or a named HTML file cannot be read, the tool prints a fetch failure line and exits with status 1. A scan that fetched nothing reports no link verdict. A page that was fetched is checked as before, and its broken link findings and clean outcomes keep their usual shapes.
+
 ## License
 Copyright (c) ShadowStrikeHQ

@@ -83,6 +83,8 @@ def scan_website(url, timeout=10, ignore_ssl=False):
 
     Returns:
         dict: A dictionary where keys are URLs and values are their HTTP status codes.
+        Returns None when the target page itself cannot be fetched, because a
+        scan that fetched nothing has no result to report.
     """
     try:
         response = requests.get(url, timeout=timeout)
@@ -96,7 +98,7 @@ def scan_website(url, timeout=10, ignore_ssl=False):
         return results
     except requests.exceptions.RequestException as e:
         logging.error(f"Error accessing {url}: {e}")
-        return {}
+        return None
 
 def scan_html_file(file_path, base_url="http://localhost", timeout=10, ignore_ssl=False):
     """
@@ -110,6 +112,8 @@ def scan_html_file(file_path, base_url="http://localhost", timeout=10, ignore_ss
 
     Returns:
         dict: A dictionary where keys are URLs and values are their HTTP status codes.
+        Returns None when the file cannot be read, because a scan that read
+        nothing has no result to report.
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -122,10 +126,10 @@ def scan_html_file(file_path, base_url="http://localhost", timeout=10, ignore_ss
         return results
     except FileNotFoundError:
         logging.error(f"File not found: {file_path}")
-        return {}
+        return None
     except Exception as e:
         logging.error(f"Error reading file {file_path}: {e}")
-        return {}
+        return None
 
 def main():
     """
@@ -151,6 +155,10 @@ def main():
     else:
         # Assume it's a file path
         results = scan_html_file(url, timeout=args.timeout, ignore_ssl=args.ignore_ssl)
+
+    if results is None:
+        print(f"Error: Failed to fetch {url}. The scan could not run, so no link verdict is available.")
+        sys.exit(1)
 
     broken_links = {url: status for url, status in results.items() if status is None or status >= 400}
 
