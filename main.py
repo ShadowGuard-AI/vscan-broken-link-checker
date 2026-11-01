@@ -44,8 +44,10 @@ def get_all_links(url, html):
     """
     soup = BeautifulSoup(html, 'html.parser')
     links = set()
+    # Only anchor tags are links as far as I am concerned. Images, scripts, stylesheets, and form actions are never checked, so a page held together by broken asset references reports clean here.
     for a_tag in soup.find_all('a', href=True):
         link = a_tag['href']
+        # urljoin leaves non HTTP references untouched, so a mailto or tel link goes into the set as its own address. The check below then fails on it inside requests and I report a contact link as a broken link with an Error status.
         absolute_url = urllib.parse.urljoin(url, link)  # Handles relative and absolute URLs correctly
         links.add(absolute_url)
     return links
@@ -64,6 +66,7 @@ def check_link_status(url, timeout=10, ignore_ssl=False):
     """
     try:
         if ignore_ssl:
+            # Each link costs a full GET with the body downloaded, one at a time. A HEAD request would answer the status question for most servers, but some refuse HEAD or answer it differently from GET, so I pay the bandwidth and keep the verdict consistent with what a browser fetch would see.
             response = requests.get(url, timeout=timeout, verify=False)
         else:
             response = requests.get(url, timeout=timeout)
@@ -87,6 +90,7 @@ def scan_website(url, timeout=10, ignore_ssl=False):
         scan that fetched nothing has no result to report.
     """
     try:
+        # This seed fetch does not take the ignore_ssl flag that the per link checks honour. A self signed site fails here before any link is checked, even on a run where the operator explicitly asked me to ignore certificate errors.
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         html = response.text
@@ -160,6 +164,7 @@ def main():
         print(f"Error: Failed to fetch {url}. The scan could not run, so no link verdict is available.")
         sys.exit(1)
 
+    # None and a real error status are the same verdict in this table. A timeout, a refused connection, and a genuine 404 sit side by side in the output distinguished only by the word Error in place of a number.
     broken_links = {url: status for url, status in results.items() if status is None or status >= 400}
 
     if broken_links:
